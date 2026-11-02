@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Share the Chocolate • Equal Sharing Lab</title>
+  <style>
+:root{font-family:ui-rounded,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#302b28;background:#faf7f1;font-synthesis:none}*{box-sizing:border-box}body{margin:0}.app{max-width:1040px;margin:auto;padding:30px 22px 38px}.hero{text-align:center;margin-bottom:24px}.eyebrow{color:#a06d47;font-size:11px;font-weight:850;letter-spacing:.18em}.hero h1{font-size:clamp(30px,5vw,46px);letter-spacing:-.045em;margin:8px 0}.hero p{margin:0;color:#746961;font-size:16px}.setup{display:flex;gap:12px;align-items:end;justify-content:center;flex-wrap:wrap;margin-bottom:26px}.setup label{font-size:12px;color:#746961;font-weight:750;display:flex;flex-direction:column;gap:5px}.setup select,button{font:inherit;border-radius:12px;min-height:42px}.setup select{border:1px solid #e2d7c7;background:white;color:#342923;padding:9px 35px 9px 12px;font-weight:750}button{border:0;background:#825437;color:#fff;padding:10px 20px;font-weight:800;cursor:pointer;touch-action:manipulation}button:hover:not(:disabled){filter:brightness(1.08)}button:disabled{opacity:.35;cursor:default}button.secondary{background:#eee6da;color:#655042}.workbench{border:1px solid #e8ddce;background:#fff;border-radius:24px;box-shadow:0 10px 35px #4230160a;padding:24px}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 13px}.section-heading h2{font-size:17px;margin:0;letter-spacing:-.02em}.count{font-size:13px;font-weight:800;color:#845f47;background:#f6ece0;border-radius:999px;padding:6px 12px}.pile{background:#fdf7ec;border:2px dashed #e5d2ae;border-radius:16px;min-height:132px;display:flex;justify-content:center;align-content:center;align-items:center;flex-wrap:wrap;gap:11px;padding:18px}.chocolate{width:67px;height:39px;display:inline-flex;align-items:center;justify-content:space-evenly;gap:2px;border:3px solid #724327;background:#945631;border-radius:7px;box-shadow:0 4px 0 #61361e,0 5px 9px #3a211321;cursor:grab;touch-action:none;user-select:none;flex-shrink:0;transition:transform .13s,box-shadow .13s}.chocolate .square{height:27px;flex:1;min-width:0;background:linear-gradient(135deg,#c58a54,#ad6d3e);border-radius:3px;box-shadow:inset 1px 1px 0 #e6ad74,inset -1px -1px 0 #744224}.chocolate:focus-visible{outline:3px solid #368ed3;outline-offset:5px}.chocolate.selected{outline:3px solid #d18a24;outline-offset:4px;transform:translateY(-3px)}.chocolate.dragging{opacity:.25}.hint{text-align:center;font-size:12px;color:#8a7d70;margin-top:11px}.bags-heading{margin-top:31px}.bags{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.bag{position:relative;min-height:195px;border:2px solid #d3b48b;border-radius:16px 16px 26px 26px;background:linear-gradient(135deg,#f9e9ce,#ecd1a3);padding:16px 11px 14px;display:flex;align-items:center;flex-direction:column;box-shadow:inset 0 -8px 15px #bf915b14}.bag:before{content:"";width:51%;height:16px;position:absolute;top:-9px;border:4px solid #b88f5b;border-bottom:0;border-radius:60% 60% 0 0}.bag h3{font-size:14px;margin:5px 0 4px;color:#765334}.bag .bag-count{font-size:12px;color:#94734d;font-weight:800;margin-bottom:14px}.bag .bag-contents{display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:center;gap:9px;min-height:88px;width:100%;padding:4px}.bag.dropzone.over,.pile.over{border-color:#559a72;background:#e7f6ea}.bag .chocolate{width:53px;height:32px;border-width:2px;box-shadow:0 3px 0 #61361e,0 4px 5px #3a211317}.bag .chocolate .square{height:23px}.result{display:flex;align-items:center;gap:15px;margin-top:17px;border:1px solid #e7dccd;border-radius:16px;background:#fff;padding:18px 19px}.status-icon{width:40px;height:40px;flex-shrink:0;display:grid;place-items:center;border-radius:12px;background:#f3e6d4;color:#a57340;font-size:21px;font-weight:800}.status-title{font-weight:850}.result p{margin:3px 0 0;color:#786c63;font-size:14px}.result.success{border-color:#b5d7be;background:#f4fcf4}.result.success .status-icon{background:#d4eed8;color:#256b3f}footer{display:flex;align-items:center;gap:10px;margin-top:20px;flex-wrap:wrap}.footer-note{font-size:12px;color:#8a7b6e;margin-left:auto}.drag-ghost{position:fixed;pointer-events:none;z-index:100;transform:translate(-50%,-50%);filter:drop-shadow(0 9px 10px #0003)}.drag-ghost .chocolate{transform:rotate(-7deg) scale(1.1)}@media(max-width:580px){.app{padding:20px 12px}.workbench{padding:16px 12px}.bags{gap:8px}.bag{min-height:184px;padding:14px 3px}.bag .bag-contents{gap:6px}.bag .chocolate{width:49px}.pile{gap:9px}.footer-note{width:100%;margin:5px 0 0}.hero p{font-size:14px}}
+
+/* Mathematical array: one vertical column per bag, with common row heights. */
+.array-explanation{font-size:12px;color:#806e60;margin:0 0 13px}
+.bags-scroll{width:100%;overflow-x:auto;padding:12px 2px 8px}
+.bags{display:flex;align-items:stretch;justify-content:center;gap:8px;min-width:max-content}
+.bag{width:clamp(110px,18vw,170px);flex:none}
+.bag-plus{align-self:center;color:#96765b;font-size:24px;font-weight:800}
+.bag .bag-contents{display:flex;flex-direction:column;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:9px}
+.bag .bag-contents .chocolate{width:67px;height:32px}
+.equation{margin-top:24px;padding:16px;border:1px solid #e7dccd;border-radius:16px;background:#fffaf2;text-align:center}
+.equation-heading{color:#926b4d;font-weight:850;font-size:11px;letter-spacing:.12em;margin-bottom:10px}
+.equation-line{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:9px;font-size:clamp(19px,3vw,29px);font-weight:850;font-variant-numeric:tabular-nums}
+.equation-operator{color:#9b7152}.equation-note{font-size:12px;color:#857366;margin-top:9px}
+.multiplication{padding:12px 6px 2px;color:#68482f;font-size:15px;font-weight:800}
+.multiplication[hidden]{display:none}
+@media(max-width:580px){.bags{justify-content:flex-start}.bag{width:105px}.bag .bag-contents .chocolate{width:61px}.bag-plus{font-size:19px}.equation-line{gap:6px}}
+
+/* Change the interpretation without rearranging any chocolate bars. */
+.view-controls{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:14px 0 9px}
+.view-choice{background:#efe7db;color:#72543f;border:2px solid transparent;padding:8px 15px;min-height:39px;font-size:13px}
+.view-choice.active{background:#dceee7;color:#215d4c;border-color:#579c83}
+.view-explanation,.array-answer{text-align:center;color:#66594d;font-size:13px;margin:8px 0 4px}
+.array-answer{font-weight:750;min-height:20px}
+.array-ready .chocolate.array-highlight{outline:3px solid #24957d;outline-offset:2px;filter:saturate(1.15)}
+.array-ready .chocolate.array-muted{opacity:.43}
+.array-ready .chocolate.selected{outline:3px solid #d18a24;opacity:1}
+@media (prefers-reduced-motion: reduce){.chocolate{transition:none}}
+
+/* Keep the division problem visible while the bars are being shared. */
+.division-question{margin:0 0 18px;padding:19px 14px;text-align:center;background:#f4eee4;border:1px solid #e7dac8;border-radius:20px}
+.question-label{font-size:11px;font-weight:850;letter-spacing:.13em;color:#906343}
+.question-expression{font-size:clamp(27px,5vw,38px);font-weight:850;letter-spacing:-.03em;margin:6px 0}
+.division-question p{font-size:13px;color:#756454;margin:4px 0 0}
+.division-answer{font-size:clamp(20px,3.5vw,27px);font-weight:850;color:#246b50;margin-top:12px}
+.division-answer[hidden]{display:none}
+
+/* Editable exercise sizes; changes apply only after New problem. */
+.setup input[type="number"]{font:inherit;border:1px solid #e2d7c7;background:white;color:#342923;padding:9px 12px;font-weight:750;border-radius:12px;min-height:42px;width:135px}
+.setup input[type="number"]:focus-visible{outline:3px solid #368ed3;outline-offset:2px}
+.setup-error{flex-basis:100%;text-align:center;font-size:13px;font-weight:750;color:#9b392e}
+.setup-error[hidden]{display:none}
+
+</style>
+
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div class="eyebrow">THE EQUAL SHARING LAB</div>
+      <h1>Share the chocolate <span aria-hidden="true">🍫</span></h1>
+      <p>Can you give every bag the same number of chocolate bars?</p>
+    </header>
+
+    <section class="setup" aria-label="Choose an exercise">
+      <label for="bar-count">Chocolate bars (1–60) <input id="bar-count" type="number" min="1" max="60" step="1" value="8" required inputmode="numeric" /></label>
+      <label for="bag-count">Bags (1–10) <input id="bag-count" type="number" min="1" max="10" step="1" value="3" required inputmode="numeric" /></label>
+      <button id="new-game" class="secondary">New problem</button><span id="setup-error" class="setup-error" role="alert" hidden></span>
+    </section>
+
+    <section class="division-question" aria-label="Division question">
+      <div class="question-label">OUR QUESTION</div>
+      <div class="question-expression" id="division-question">8 ÷ 3 = ?</div>
+      <p id="division-prompt">Share 8 chocolate bars equally among 3 bags.</p>
+      <div class="division-answer" id="division-answer" aria-live="polite" hidden></div>
+    </section>
+
+    <section class="workbench" aria-label="Share chocolate bars into bags">
+      <div class="section-heading"><h2>The chocolate pile</h2><span class="count" id="remaining-label">8 left</span></div>
+      <div id="pile" class="pile dropzone" data-target="pile" aria-label="Chocolate bars not yet shared"></div>
+      <div class="hint" id="help">Drag a bar to a bag, or tap a bar and then tap a bag.</div>
+      <div class="section-heading bags-heading"><h2>The bags</h2><span class="count" id="shared-label">0 shared</span></div>
+      <p class="array-explanation">Each bag is a column. Bars on the same level form a row.</p>
+      <div class="view-controls" role="group" aria-label="Look at the array">
+        <button type="button" class="view-choice active" id="view-columns" aria-pressed="true">Look at columns</button>
+        <button type="button" class="view-choice" id="view-rows" aria-pressed="false">Look at rows</button>
+      </div>
+      <p class="view-explanation" id="view-explanation" aria-live="polite">Each column is one person's bag. How many bars does each person receive?</p>
+      <div class="bags-scroll"><div class="bags" id="bags"></div></div>
+      <p class="array-answer" id="array-answer" aria-live="polite"></p>
+      <div class="equation" aria-live="polite">
+        <div class="equation-heading">WHAT WE HAVE RIGHT NOW</div>
+        <div class="equation-line" id="addition-equation"></div>
+        <div class="equation-note" id="equation-note">Bars in the bags + bars left in the pile = starting bars</div>
+        <div class="multiplication" id="multiplication-equation" hidden></div>
+      </div>
+    </section>
+
+    <section class="result" aria-live="polite">
+      <div class="status-icon" id="status-icon" aria-hidden="true">↗</div>
+      <div><div class="status-title" id="status-title">Your turn to share</div><p id="status-message">Try giving each bag one bar. You can change your mind and move bars back.</p></div>
+    </section>
+
+    <footer>
+      <button id="undo" class="secondary" disabled>↶ Undo</button>
+      <button id="reset">Reset bars</button>
+      <span class="footer-note">Whole bars only for now. Cutting comes next.</span>
+    </footer>
+  </main>
+  <div class="drag-ghost" id="drag-ghost" hidden></div>
+<script>
+function countBarsInBag(locations, bagId) {
+  return locations.filter(location => location === bagId).length;
+}
+
+function getBagCounts(locations, bagCount) {
+  return Array.from({ length: bagCount }, (_, bagId) => countBarsInBag(locations, bagId));
+}
+
+function areAllBagsEqual(counts) {
+  return counts.every(count => count === counts[0]);
+}
+
+function getRemainingCount(locations) {
+  return locations.filter(location => location === null).length;
+}
+
+function canDistributeAnotherRound(counts, remaining) {
+  return areAllBagsEqual(counts) && remaining >= counts.length;
+}
+
+function hasReachedWholeBarRemainder(counts, remaining) {
+  return areAllBagsEqual(counts) && counts[0] > 0 && remaining < counts.length;
+}
+
+
+
+const $ = selector => document.querySelector(selector);
+const elements = {
+  pile: $('#pile'), bags: $('#bags'), remaining: $('#remaining-label'),
+  shared: $('#shared-label'), title: $('#status-title'), message: $('#status-message'),
+  icon: $('#status-icon'), result: $('.result'), ghost: $('#drag-ghost'),
+  barCount: $('#bar-count'), bagCount: $('#bag-count'), undo: $('#undo'), help: $('#help'),
+  addition: $('#addition-equation'), multiplication: $('#multiplication-equation'),
+  columns: $('#view-columns'), rows: $('#view-rows'),
+  viewExplanation: $('#view-explanation'), arrayAnswer: $('#array-answer'),
+  divisionQuestion: $('#division-question'), divisionPrompt: $('#division-prompt'),
+  divisionAnswer: $('#division-answer'), setupError: $('#setup-error')
+};
+
+let game;
+let selectedBar = null;
+let dragging = null;
+let arrayView = 'columns';
+
+function readWholeNumber(input, max) {
+  const value = input.value.trim();
+  const number = Number(value);
+  return value !== '' && Number.isInteger(number) && number >= 1 && number <= max ? number : null;
+}
+
+function readProblemSize() {
+  const totalBars = readWholeNumber(elements.barCount, 60);
+  const bagCount = readWholeNumber(elements.bagCount, 10);
+  if (totalBars === null || bagCount === null) {
+    elements.setupError.textContent = 'Enter 1–60 whole bars and 1–10 bags.';
+    elements.setupError.hidden = false;
+    return null;
+  }
+  elements.setupError.hidden = true;
+  return { totalBars, bagCount };
+}
+
+function startGame() {
+  const problem = readProblemSize();
+  if (!problem) return;
+  const { totalBars, bagCount } = problem;
+  game = { totalBars, bagCount, locations: Array(totalBars).fill(null), history: [] };
+  selectedBar = null;
+  arrayView = 'columns';
+  renderGame();
+}
+
+function moveBar(barId, target) {
+  if (game.locations[barId] === target) return;
+  game.history.push([...game.locations]);
+  game.locations[barId] = target;
+  selectedBar = null;
+  renderGame();
+}
+
+function undoMove() {
+  if (game.history.length === 0) return;
+  game.locations = game.history.pop();
+  selectedBar = null;
+  renderGame();
+}
+
+function resetBars() {
+  game.locations.fill(null);
+  game.history = [];
+  selectedBar = null;
+  renderGame();
+}
+
+function makeChocolate(barId) {
+  const chocolate = document.createElement('button');
+  chocolate.type = 'button';
+  chocolate.className = 'chocolate';
+  chocolate.dataset.barId = String(barId);
+  chocolate.setAttribute('aria-label', `Chocolate bar ${barId + 1}`);
+  chocolate.setAttribute('aria-pressed', String(selectedBar === barId));
+  if (selectedBar === barId) chocolate.classList.add('selected');
+  for (let segment = 0; segment < 3; segment++) {
+    const square = document.createElement('span');
+    square.className = 'square';
+    chocolate.append(square);
+  }
+  chocolate.addEventListener('pointerdown', event => beginDrag(event, barId));
+  chocolate.addEventListener('click', () => selectBar(barId));
+  return chocolate;
+}
+
+function makeBag(bagId) {
+  const bag = document.createElement('div');
+  bag.className = 'bag dropzone';
+  bag.classList.toggle('column-focus', arrayView === 'columns');
+  bag.dataset.target = String(bagId);
+  bag.tabIndex = 0;
+  bag.setAttribute('role', 'button');
+  const count = game.locations.filter(location => location === bagId).length;
+  bag.setAttribute('aria-label', `Bag ${bagId + 1}, ${count} bars. Click to place a selected bar.`);
+  bag.innerHTML = `<h3>Bag ${bagId + 1}</h3><div class="bag-count">${count} ${count === 1 ? 'bar' : 'bars'}</div><div class="bag-contents"></div>`;
+  game.locations.forEach((location, barId) => {
+    if (location !== bagId) return;
+    const chocolate = makeChocolate(barId);
+    chocolate.dataset.row = String(countPriorBarsInBag(barId, bagId));
+    bag.querySelector('.bag-contents').append(chocolate);
+  });
+  bag.addEventListener('click', event => {
+    if (event.target.closest('.chocolate')) return;
+    placeSelectedBar(bagId);
+  });
+  bag.addEventListener('keydown', event => {
+    if ((event.key === 'Enter' || event.key === ' ') && event.target === bag) {
+      event.preventDefault();
+      placeSelectedBar(bagId);
+    }
+  });
+  return bag;
+}
+
+function renderGame() {
+  elements.pile.replaceChildren();
+  game.locations.forEach((location, barId) => {
+    if (location === null) elements.pile.append(makeChocolate(barId));
+  });
+  renderBagColumns();
+  renderArrayView();
+  renderProgress();
+  renderEquations();
+  renderDivisionQuestion();
+  elements.undo.disabled = game.history.length === 0;
+}
+
+
+function renderBagColumns() {
+  const columns = Array.from({ length: game.bagCount }, (_, id) => makeBag(id));
+  const parts = columns.flatMap((column, index) => index === 0 ? [column] : [makePlusSign(), column]);
+  elements.bags.replaceChildren(...parts);
+}
+
+function makePlusSign() {
+  const plus = document.createElement('span');
+  plus.className = 'bag-plus';
+  plus.textContent = '+';
+  plus.setAttribute('aria-hidden', 'true');
+  return plus;
+}
+
+
+function countPriorBarsInBag(barId, bagId) {
+  return game.locations.slice(0, barId).filter(location => location === bagId).length;
+}
+
+function setArrayView(view) {
+  arrayView = view;
+  renderGame();
+}
+
+function renderArrayView() {
+  const counts = getBagCounts(game.locations, game.bagCount);
+  const shared = counts.reduce((sum, count) => sum + count, 0);
+  const equal = areAllBagsEqual(counts);
+  const canSeeArray = shared > 0 && equal;
+  elements.columns.classList.toggle('active', arrayView === 'columns');
+  elements.rows.classList.toggle('active', arrayView === 'rows');
+  elements.columns.setAttribute('aria-pressed', String(arrayView === 'columns'));
+  elements.rows.setAttribute('aria-pressed', String(arrayView === 'rows'));
+  elements.viewExplanation.textContent = getViewExplanation(arrayView);
+  elements.arrayAnswer.textContent = getArrayAnswer(arrayView, counts, canSeeArray);
+  highlightArray(arrayView, canSeeArray);
+}
+
+function getViewExplanation(view) {
+  if (view === 'columns') return 'Each column is one person’s bag. How many bars does each person receive?';
+  return 'Each row is one group with one bar per bag. How many groups of bars have we shared?';
+}
+
+function getArrayAnswer(view, counts, canSeeArray) {
+  if (!canSeeArray) return 'Share the bars equally to reveal a complete rectangle. Uneven sharing is okay while you work!';
+  if (view === 'columns') return `${counts[0]} bars in each of ${game.bagCount} bags (${counts.join(' + ')} = ${counts.reduce((a,b)=>a+b,0)} shared).`;
+  return `${counts[0]} rows of ${game.bagCount} bars = ${counts[0] * game.bagCount} bars shared.`;
+}
+
+function highlightArray(view, canSeeArray) {
+  const bars = [...elements.bags.querySelectorAll('.bag .chocolate')];
+  bars.forEach(bar => {
+    const bagId = Number(bar.closest('.bag').dataset.target);
+    const rowId = Number(bar.dataset.row);
+    const highlighted = canSeeArray && (view === 'columns' ? bagId === 0 : rowId === 0);
+    bar.classList.toggle('array-highlight', highlighted);
+    bar.classList.toggle('array-muted', canSeeArray && !highlighted);
+  });
+  elements.bags.classList.toggle('array-ready', canSeeArray);
+}
+
+function renderEquations() {
+  const counts = getBagCounts(game.locations, game.bagCount);
+  const remaining = getRemainingCount(game.locations);
+  renderAddition(counts, remaining);
+  renderMultiplication(counts, remaining);
+}
+
+function renderAddition(counts, remaining) {
+  const parts = [...counts.map(String), String(remaining)];
+  const pieces = parts.flatMap((amount, index) => index === 0 ? [makeEquationNumber(amount)] : [makeEquationOperator('+'), makeEquationNumber(amount)]);
+  pieces.push(makeEquationOperator('='), makeEquationNumber(String(game.totalBars)));
+  elements.addition.replaceChildren(...pieces);
+}
+
+function makeEquationNumber(value) {
+  const number = document.createElement('span');
+  number.className = 'equation-number';
+  number.textContent = value;
+  return number;
+}
+
+function makeEquationOperator(value) {
+  const operator = document.createElement('span');
+  operator.className = 'equation-operator';
+  operator.textContent = value;
+  return operator;
+}
+
+function renderMultiplication(counts, remaining) {
+  const equal = areAllBagsEqual(counts);
+  const hasShared = counts.some(count => count > 0);
+  elements.multiplication.hidden = !(equal && hasShared);
+  if (!equal || !hasShared) return;
+  const perBag = counts[0];
+  elements.multiplication.textContent = `${game.bagCount} bags × ${perBag} bars each + ${remaining} left = ${game.totalBars}`;
+}
+
+function renderDivisionQuestion() {
+  elements.divisionQuestion.textContent = `${game.totalBars} ÷ ${game.bagCount} = ?`;
+  elements.divisionPrompt.textContent = `Share ${game.totalBars} chocolate bars equally among ${game.bagCount} bags.`;
+  const counts = getBagCounts(game.locations, game.bagCount);
+  const remaining = getRemainingCount(game.locations);
+  const complete = hasReachedWholeBarRemainder(counts, remaining) ||
+    (remaining === 0 && areAllBagsEqual(counts));
+  elements.divisionAnswer.hidden = !complete;
+  if (!complete) return;
+  const remainderText = remaining > 0 ? ` R ${remaining}` : '';
+  elements.divisionAnswer.textContent = `${game.totalBars} ÷ ${game.bagCount} = ${counts[0]}${remainderText}`;
+}
+
+function renderProgress() {
+  const remaining = getRemainingCount(game.locations);
+  const counts = getBagCounts(game.locations, game.bagCount);
+  const shared = game.totalBars - remaining;
+  elements.remaining.textContent = `${remaining} left`;
+  elements.shared.textContent = `${shared} shared`;
+  elements.result.classList.remove('success');
+  if (hasReachedWholeBarRemainder(counts, remaining)) {
+    showRemainder(counts[0], remaining);
+  } else if (remaining === 0 && areAllBagsEqual(counts)) {
+    showSuccess(counts[0]);
+  } else if (shared === 0) {
+    showStatus('Your turn to share', 'Try giving each bag one bar. You can move bars back.', '↗');
+  } else if (!areAllBagsEqual(counts)) {
+    showStatus('Keep sharing!', 'Some bags have more than others. Can you make them equal?', '↗');
+  } else {
+    showStatus('All bags are equal!', `Each bag has ${counts[0]} bars. You still have ${remaining} to share.`, '✓');
+  }
+}
+
+function showRemainder(perBag, remainder) {
+  const label = remainder === 1 ? 'bar' : 'bars';
+  elements.result.classList.add('success');
+  showStatus('Equal sharing — with a remainder!', `Each bag has ${perBag} bars, with ${remainder} ${label} left. ${game.totalBars} ÷ ${game.bagCount} = ${perBag} remainder ${remainder}.`, '★');
+}
+
+function showSuccess(perBag) {
+  elements.result.classList.add('success');
+  showStatus('Perfectly shared!', `Every bag has ${perBag} bars and none are left. ${game.totalBars} ÷ ${game.bagCount} = ${perBag}.`, '★');
+}
+
+function showStatus(title, message, icon) {
+  elements.title.textContent = title;
+  elements.message.textContent = message;
+  elements.icon.textContent = icon;
+}
+
+function selectBar(barId) {
+  selectedBar = selectedBar === barId ? null : barId;
+  renderGame();
+  if (selectedBar !== null) elements.help.textContent = 'Now tap a bag, or tap the pile to return this bar.';
+  else elements.help.textContent = 'Drag a bar to a bag, or tap a bar and then tap a bag.';
+}
+
+function placeSelectedBar(target) {
+  if (selectedBar !== null) moveBar(selectedBar, target);
+}
+
+function beginDrag(event, barId) {
+  if (event.button !== 0 && event.pointerType === 'mouse') return;
+  dragging = { barId, startX: event.clientX, startY: event.clientY, moved: false, pointerId: event.pointerId };
+  event.currentTarget.setPointerCapture(event.pointerId);
+  event.currentTarget.addEventListener('pointermove', dragMove);
+  event.currentTarget.addEventListener('pointerup', endDrag, { once: true });
+  event.currentTarget.addEventListener('pointercancel', cancelDrag, { once: true });
+}
+
+function dragMove(event) {
+  if (!dragging || dragging.pointerId !== event.pointerId) return;
+  if (!dragging.moved && Math.hypot(event.clientX - dragging.startX, event.clientY - dragging.startY) < 6) return;
+  if (!dragging.moved) createDragGhost(dragging.barId);
+  dragging.moved = true;
+  positionGhost(event.clientX, event.clientY);
+  highlightDropzone(event.clientX, event.clientY);
+}
+
+function createDragGhost(barId) {
+  elements.ghost.replaceChildren(makeChocolate(barId));
+  elements.ghost.hidden = false;
+  document.querySelector(`[data-bar-id="${barId}"]`)?.classList.add('dragging');
+}
+
+function positionGhost(x, y) {
+  elements.ghost.style.left = `${x}px`;
+  elements.ghost.style.top = `${y}px`;
+}
+
+function findDropzone(x, y) {
+  return document.elementFromPoint(x, y)?.closest('.dropzone') ?? null;
+}
+
+function highlightDropzone(x, y) {
+  document.querySelectorAll('.dropzone').forEach(zone => zone.classList.remove('over'));
+  findDropzone(x, y)?.classList.add('over');
+}
+
+function endDrag(event) {
+  if (!dragging || dragging.pointerId !== event.pointerId) return;
+  event.currentTarget.removeEventListener('pointermove', dragMove);
+  const wasDragged = dragging.moved;
+  const barId = dragging.barId;
+  const dropzone = wasDragged ? findDropzone(event.clientX, event.clientY) : null;
+  finishDrag();
+  if (dropzone) moveBar(barId, dropzone.dataset.target === 'pile' ? null : Number(dropzone.dataset.target));
+  if (wasDragged) event.currentTarget.addEventListener('click', suppressClick, { once: true, capture: true });
+}
+
+function suppressClick(event) {
+  event.stopImmediatePropagation();
+  event.preventDefault();
+}
+
+function cancelDrag(event) {
+  event.currentTarget.removeEventListener('pointermove', dragMove);
+  finishDrag();
+}
+
+function finishDrag() {
+  elements.ghost.hidden = true;
+  elements.ghost.replaceChildren();
+  document.querySelectorAll('.over').forEach(zone => zone.classList.remove('over'));
+  document.querySelectorAll('.dragging').forEach(chocolate => chocolate.classList.remove('dragging'));
+  dragging = null;
+}
+
+elements.pile.addEventListener('click', event => {
+  if (!event.target.closest('.chocolate')) placeSelectedBar(null);
+});
+elements.pile.tabIndex = 0;
+elements.pile.setAttribute('role', 'button');
+elements.pile.addEventListener('keydown', event => {
+  if (event.target === elements.pile && (event.key === 'Enter' || event.key === ' ')) {
+    event.preventDefault();
+    placeSelectedBar(null);
+  }
+});
+elements.columns.addEventListener('click', () => setArrayView('columns'));
+elements.rows.addEventListener('click', () => setArrayView('rows'));
+$('#new-game').addEventListener('click', startGame);
+[elements.barCount, elements.bagCount].forEach(input => {
+  input.addEventListener('input', () => { elements.setupError.hidden = true; });
+  input.addEventListener('keydown', event => { if (event.key === 'Enter') startGame(); });
+});
+$('#undo').addEventListener('click', undoMove);
+$('#reset').addEventListener('click', resetBars);
+startGame();
+
+</script>
+</body>
+</html>
