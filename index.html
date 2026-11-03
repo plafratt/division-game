@@ -127,7 +127,7 @@ function canDistributeAnotherRound(counts, remaining) {
 }
 
 function hasReachedWholeBarRemainder(counts, remaining) {
-  return areAllBagsEqual(counts) && counts[0] > 0 && remaining < counts.length;
+  return areAllBagsEqual(counts) && counts[0] > 0 && remaining > 0 && remaining < counts.length;
 }
 
 
@@ -388,19 +388,19 @@ function renderProgress() {
   } else if (!areAllBagsEqual(counts)) {
     showStatus('Keep sharing!', 'Some bags have more than others. Can you make them equal?', '↗');
   } else {
-    showStatus('All bags are equal!', `Each bag has ${counts[0]} bars. You still have ${remaining} to share.`, '✓');
+    showStatus('All bags are equal!', `Each bag has ${counts[0]} ${counts[0] === 1 ? 'bar' : 'bars'}. You still have ${remaining} to share.`, '✓');
   }
 }
 
 function showRemainder(perBag, remainder) {
   const label = remainder === 1 ? 'bar' : 'bars';
   elements.result.classList.add('success');
-  showStatus('Equal sharing — with a remainder!', `Each bag has ${perBag} bars, with ${remainder} ${label} left. ${game.totalBars} ÷ ${game.bagCount} = ${perBag} remainder ${remainder}.`, '★');
+  showStatus('Equal sharing — with a remainder!', `Each bag has ${perBag} ${perBag === 1 ? 'bar' : 'bars'}, with ${remainder} ${label} left. ${game.totalBars} ÷ ${game.bagCount} = ${perBag} remainder ${remainder}.`, '★');
 }
 
 function showSuccess(perBag) {
   elements.result.classList.add('success');
-  showStatus('Perfectly shared!', `Every bag has ${perBag} bars and none are left. ${game.totalBars} ÷ ${game.bagCount} = ${perBag}.`, '★');
+  showStatus('Perfectly shared!', `Every bag has ${perBag} ${perBag === 1 ? 'bar' : 'bars'} and none are left. ${game.totalBars} ÷ ${game.bagCount} = ${perBag}.`, '★');
 }
 
 function showStatus(title, message, icon) {
