@@ -48,8 +48,19 @@
 .setup-error{flex-basis:100%;text-align:center;font-size:13px;font-weight:750;color:#9b392e}
 .setup-error[hidden]{display:none}
 
-</style>
+/* Optional inverse-operation activity after an exact division. */
+.reverse-panel{margin-top:18px;border:1px solid #b9d7c6;background:#f4faf5;border-radius:18px;padding:19px;text-align:center}
+.reverse-panel[hidden],.reverse-progress[hidden],.reverse-help[hidden],#start-reverse[hidden]{display:none}
+.reverse-heading{font-size:11px;letter-spacing:.14em;color:#30684e;font-weight:850}
+.reverse-panel p{font-size:14px;color:#57695e;margin:10px 0}
+.reverse-progress{font-size:clamp(18px,3vw,26px);font-weight:850;line-height:1.5;margin:12px 0;overflow-wrap:anywhere}
+.return-bag{font-size:12px;min-height:38px;padding:7px 10px;margin-top:14px;background:#326e59;max-width:100%;white-space:normal}
+.reverse-bag .chocolate{cursor:default}
+.chocolate.just-returned{animation:return-arrival .35s ease-out both}
+@keyframes return-arrival{from{transform:scale(.75);opacity:.4}to{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.chocolate.just-returned{animation:none}}
 
+  </style>
 </head>
 <body>
   <main class="app">
@@ -91,6 +102,14 @@
         <div class="equation-note" id="equation-note">Bars in the bags + bars left in the pile = starting bars</div>
         <div class="multiplication" id="multiplication-equation" hidden></div>
       </div>
+    </section>
+
+    <section class="reverse-panel" id="reverse-panel" hidden aria-label="Check division using multiplication">
+      <div class="reverse-heading">CHECK WITH MULTIPLICATION</div>
+      <p id="reverse-instructions">Put each bag's bars back in the pile to check your answer.</p>
+      <button id="start-reverse" type="button">Check with multiplication</button>
+      <div id="reverse-progress" class="reverse-progress" hidden aria-live="polite"></div>
+      <p id="reverse-help" class="reverse-help" hidden>Tap “Return this bag” beneath a bag. Each tap moves the whole group back to the pile.</p>
     </section>
 
     <section class="result" aria-live="polite">
@@ -142,13 +161,17 @@ const elements = {
   columns: $('#view-columns'), rows: $('#view-rows'),
   viewExplanation: $('#view-explanation'), arrayAnswer: $('#array-answer'),
   divisionQuestion: $('#division-question'), divisionPrompt: $('#division-prompt'),
-  divisionAnswer: $('#division-answer'), setupError: $('#setup-error')
+  divisionAnswer: $('#division-answer'), setupError: $('#setup-error'),
+  reversePanel: $('#reverse-panel'), startReverse: $('#start-reverse'),
+  reverseProgress: $('#reverse-progress'), reverseHelp: $('#reverse-help')
 };
 
 let game;
 let selectedBar = null;
 let dragging = null;
 let arrayView = 'columns';
+let reverse = null;
+let recentlyReturned = [];
 
 function readWholeNumber(input, max) {
   const value = input.value.trim();
@@ -175,26 +198,38 @@ function startGame() {
   game = { totalBars, bagCount, locations: Array(totalBars).fill(null), history: [] };
   selectedBar = null;
   arrayView = 'columns';
+  reverse = null;
+  recentlyReturned = [];
   renderGame();
 }
 
 function moveBar(barId, target) {
+  if (reverse) return;
   if (game.locations[barId] === target) return;
-  game.history.push([...game.locations]);
+  saveHistory();
   game.locations[barId] = target;
   selectedBar = null;
   renderGame();
 }
 
+function saveHistory() {
+  game.history.push({ locations: [...game.locations], reverse: reverse ? { ...reverse } : null });
+}
+
 function undoMove() {
   if (game.history.length === 0) return;
-  game.locations = game.history.pop();
+  const previous = game.history.pop();
+  game.locations = previous.locations;
+  reverse = previous.reverse;
+  recentlyReturned = [];
   selectedBar = null;
   renderGame();
 }
 
 function resetBars() {
   game.locations.fill(null);
+  reverse = null;
+  recentlyReturned = [];
   game.history = [];
   selectedBar = null;
   renderGame();
@@ -208,6 +243,8 @@ function makeChocolate(barId) {
   chocolate.setAttribute('aria-label', `Chocolate bar ${barId + 1}`);
   chocolate.setAttribute('aria-pressed', String(selectedBar === barId));
   if (selectedBar === barId) chocolate.classList.add('selected');
+  if (recentlyReturned.includes(barId)) chocolate.classList.add('just-returned');
+  chocolate.disabled = Boolean(reverse);
   for (let segment = 0; segment < 3; segment++) {
     const square = document.createElement('span');
     square.className = 'square';
@@ -221,6 +258,7 @@ function makeChocolate(barId) {
 function makeBag(bagId) {
   const bag = document.createElement('div');
   bag.className = 'bag dropzone';
+  if (reverse) bag.classList.add('reverse-bag');
   bag.classList.toggle('column-focus', arrayView === 'columns');
   bag.dataset.target = String(bagId);
   bag.tabIndex = 0;
@@ -234,17 +272,73 @@ function makeBag(bagId) {
     chocolate.dataset.row = String(countPriorBarsInBag(barId, bagId));
     bag.querySelector('.bag-contents').append(chocolate);
   });
+  if (reverse && count > 0) bag.append(makeReturnButton(bagId, count));
   bag.addEventListener('click', event => {
-    if (event.target.closest('.chocolate')) return;
+    if (reverse || event.target.closest('.chocolate')) return;
     placeSelectedBar(bagId);
   });
   bag.addEventListener('keydown', event => {
-    if ((event.key === 'Enter' || event.key === ' ') && event.target === bag) {
+    if (!reverse && (event.key === 'Enter' || event.key === ' ') && event.target === bag) {
       event.preventDefault();
       placeSelectedBar(bagId);
     }
   });
   return bag;
+}
+
+function makeReturnButton(bagId, count) {
+  const button = document.createElement('button');
+  button.className = 'return-bag';
+  button.type = 'button';
+  button.textContent = `Return this bag (${count})`;
+  button.addEventListener('click', event => {
+    event.stopPropagation();
+    returnWholeBag(bagId);
+  });
+  return button;
+}
+
+function canCheckMultiplication() {
+  const counts = getBagCounts(game.locations, game.bagCount);
+  return getRemainingCount(game.locations) === 0 && areAllBagsEqual(counts);
+}
+
+function startMultiplicationCheck() {
+  if (!canCheckMultiplication() || reverse) return;
+  const counts = getBagCounts(game.locations, game.bagCount);
+  saveHistory();
+  reverse = { perBag: counts[0], groupsReturned: 0 };
+  selectedBar = null;
+  renderGame();
+}
+
+function returnWholeBag(bagId) {
+  if (!reverse) return;
+  const barIds = game.locations.flatMap((location, barId) => location === bagId ? [barId] : []);
+  if (barIds.length === 0) return;
+  saveHistory();
+  barIds.forEach(barId => { game.locations[barId] = null; });
+  reverse.groupsReturned += 1;
+  recentlyReturned = barIds;
+  renderGame();
+}
+
+function renderReversePanel() {
+  const available = canCheckMultiplication();
+  elements.reversePanel.hidden = !(reverse || available);
+  if (!reverse && !available) return;
+  elements.startReverse.hidden = Boolean(reverse);
+  elements.reverseProgress.hidden = !reverse;
+  elements.reverseHelp.hidden = !reverse || reverse.groupsReturned === game.bagCount;
+  if (!reverse) return;
+  const { groupsReturned, perBag } = reverse;
+  const total = groupsReturned * perBag;
+  const allReturned = groupsReturned === game.bagCount;
+  const addition = groupsReturned === 0 ? '0' : Array(groupsReturned).fill(perBag).join(' + ');
+  elements.reverseProgress.textContent = allReturned
+    ? `${addition} = ${total}  ·  ${game.bagCount} × ${perBag} = ${game.totalBars} ✓`
+    : `${addition} = ${total}  ·  ${groupsReturned} × ${perBag} = ${total}`;
+  elements.reverseHelp.textContent = 'Tap “Return this bag” beneath a bag. Each tap moves the whole group back to the pile.';
 }
 
 function renderGame() {
@@ -257,6 +351,7 @@ function renderGame() {
   renderProgress();
   renderEquations();
   renderDivisionQuestion();
+  renderReversePanel();
   elements.undo.disabled = game.history.length === 0;
 }
 
@@ -289,7 +384,7 @@ function renderArrayView() {
   const counts = getBagCounts(game.locations, game.bagCount);
   const shared = counts.reduce((sum, count) => sum + count, 0);
   const equal = areAllBagsEqual(counts);
-  const canSeeArray = shared > 0 && equal;
+  const canSeeArray = shared > 0 && equal && !reverse;
   elements.columns.classList.toggle('active', arrayView === 'columns');
   elements.rows.classList.toggle('active', arrayView === 'rows');
   elements.columns.setAttribute('aria-pressed', String(arrayView === 'columns'));
@@ -364,8 +459,8 @@ function renderDivisionQuestion() {
   elements.divisionPrompt.textContent = `Share ${game.totalBars} chocolate bars equally among ${game.bagCount} bags.`;
   const counts = getBagCounts(game.locations, game.bagCount);
   const remaining = getRemainingCount(game.locations);
-  const complete = hasReachedWholeBarRemainder(counts, remaining) ||
-    (remaining === 0 && areAllBagsEqual(counts));
+  const complete = !reverse && (hasReachedWholeBarRemainder(counts, remaining) ||
+    (remaining === 0 && areAllBagsEqual(counts)));
   elements.divisionAnswer.hidden = !complete;
   if (!complete) return;
   const remainderText = remaining > 0 ? ` R ${remaining}` : '';
@@ -379,7 +474,9 @@ function renderProgress() {
   elements.remaining.textContent = `${remaining} left`;
   elements.shared.textContent = `${shared} shared`;
   elements.result.classList.remove('success');
-  if (hasReachedWholeBarRemainder(counts, remaining)) {
+  if (reverse) {
+    showMultiplicationProgress();
+  } else if (hasReachedWholeBarRemainder(counts, remaining)) {
     showRemainder(counts[0], remaining);
   } else if (remaining === 0 && areAllBagsEqual(counts)) {
     showSuccess(counts[0]);
@@ -390,6 +487,16 @@ function renderProgress() {
   } else {
     showStatus('All bags are equal!', `Each bag has ${counts[0]} ${counts[0] === 1 ? 'bar' : 'bars'}. You still have ${remaining} to share.`, '✓');
   }
+}
+
+function showMultiplicationProgress() {
+  const { perBag, groupsReturned } = reverse;
+  const done = groupsReturned === game.bagCount;
+  if (done) elements.result.classList.add('success');
+  showStatus(done ? 'Multiplication checks out!' : 'Put the groups back together',
+    done ? `${game.bagCount} groups of ${perBag} make ${game.totalBars}. ${game.totalBars} ÷ ${game.bagCount} = ${perBag}, and ${game.bagCount} × ${perBag} = ${game.totalBars}.`
+      : `You have returned ${groupsReturned} of ${game.bagCount} bags. Each whole bag contains ${perBag} ${perBag === 1 ? 'bar' : 'bars'}.`,
+    done ? '★' : '↶');
 }
 
 function showRemainder(perBag, remainder) {
@@ -410,6 +517,7 @@ function showStatus(title, message, icon) {
 }
 
 function selectBar(barId) {
+  if (reverse) return;
   selectedBar = selectedBar === barId ? null : barId;
   renderGame();
   if (selectedBar !== null) elements.help.textContent = 'Now tap a bag, or tap the pile to return this bar.';
@@ -417,10 +525,12 @@ function selectBar(barId) {
 }
 
 function placeSelectedBar(target) {
+  if (reverse) return;
   if (selectedBar !== null) moveBar(selectedBar, target);
 }
 
 function beginDrag(event, barId) {
+  if (reverse) return;
   if (event.button !== 0 && event.pointerType === 'mouse') return;
   dragging = { barId, startX: event.clientX, startY: event.clientY, moved: false, pointerId: event.pointerId };
   event.currentTarget.setPointerCapture(event.pointerId);
@@ -501,6 +611,7 @@ elements.pile.addEventListener('keydown', event => {
 elements.columns.addEventListener('click', () => setArrayView('columns'));
 elements.rows.addEventListener('click', () => setArrayView('rows'));
 $('#new-game').addEventListener('click', startGame);
+elements.startReverse.addEventListener('click', startMultiplicationCheck);
 [elements.barCount, elements.bagCount].forEach(input => {
   input.addEventListener('input', () => { elements.setupError.hidden = true; });
   input.addEventListener('keydown', event => { if (event.key === 'Enter') startGame(); });
